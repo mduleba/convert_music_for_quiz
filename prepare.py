@@ -2,15 +2,7 @@ from pydub.effects import normalize
 import os
 from typing import List
 
-from audio_file_dt import AudioFile
-from audio_files import all_audio_files
-
-
-def convert_mp4_to_mp3(file: AudioFile):
-    if file.is_mp4:
-        new_name = file.file_path[:-4] + '.mp3'
-        file.video.audio.write_audiofile(file.file_path[:-4] + '.mp3')
-        return new_name
+from audio_file import AudioFile
 
 
 def add_delay(file: AudioFile, suffix: str = 'delayed'):
@@ -25,11 +17,27 @@ def add_delay(file: AudioFile, suffix: str = 'delayed'):
 
 
 def normalize_volume(file: AudioFile, suffix: str = 'normalized'):
-    if file.is_mp3:
-        normalized_audio = normalize(file.audio)
-        new_path = file.file_path[:-4] + f'_{suffix}.mp3'
-        normalized_audio.export(new_path, format="mp3")
-        return new_path
+    if file.is_mp3 and file.audio:
+        try:
+            normalized_audio = normalize(file.audio)
+            new_path = os.path.splitext(file.file_path)[0] + f'_{suffix}.mp3'
+            normalized_audio.export(file.file_path, format="mp3")
+            return new_path
+        except Exception as e:
+            print(f"Error normalizing {file.file_path}: {e}")
+            return None
+
+
+def merge_audio(file_1: AudioFile, file_2: AudioFile, suffix: str = 'merged'):
+    if all([file_1.is_mp3, file_2.is_mp3, bool(file_1.audio), bool(file_2.audio)]):
+        try:
+            merged_audio = file_1.audio + file_2.audio
+            new_path = os.path.splitext(file_1.file_path)[0] + f'_{suffix}.mp3'
+            merged_audio.export(new_path, format="mp3")
+            return new_path
+        except Exception as e:
+            print(f"Error normalizing {file_1.file_path}: {e}")
+            return None
 
 
 def scan_files(path: str) -> List[AudioFile]:
@@ -59,14 +67,4 @@ def write_audio_files_to_python_file(audio_files: List[AudioFile], file_name: st
 def load_files():
     dir_path = 'O:\Downloads\quiz muzyczny'
     audio_files = scan_files(dir_path)
-    write_audio_files_to_python_file(audio_files, 'audio_files.py')
-
-
-if __name__ == '__main__':
-    results = []
-    for file in all_audio_files:
-        music_file = AudioFile(convert_mp4_to_mp3(file), file.delay, file.subtract)
-        delayed_file = AudioFile(add_delay(music_file), 0, 0)
-        normalized_file = AudioFile(normalize_volume(delayed_file), 0, 0)
-        results.append(normalized_file)
-
+    write_audio_files_to_python_file(audio_files, 'main.py')
